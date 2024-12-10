@@ -8,17 +8,18 @@ class DBClient {
         this.port = process.env.PORT || 27017;
         this.database = process.env.DATABASE_NAME || 'files_manager';
 
-        // Call MongoClient.connect (not new MongoClient)
-        MongoClient.connect(`mongodb://${this.host}:${this.port}`, {
+        this.init();
+    }
+
+    init() {
+        return MongoClient.connect(`mongodb://${this.host}:${this.port}`, {
             useNewUrlParser: true,
-            useUnifiedTopology: true
-        }, (err, client) => {
-            if (err) {
-                console.error(err.message);
-            } else {
-                this.client = client;
-                this.db = this.client.db(this.database);
-            }
+            useUnifiedTopology: true,
+        }).then((client) => {
+            this.client = client;
+            this.db = client.db(this.database);
+        }).catch((err) => {
+            console.error(err.message);
         });
     }
 
