@@ -91,15 +91,15 @@ class FilesController {
     const { id } = req.params;
     const userId = await redisClient.get(`auth_${token}`);
 
-    if (!userId)
-      return res.status(401).json({ error: 'Unauthorized' });
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
     try {
       const filesCollection = await dbClient.db.collection('files');
-      const file = await filesCollection.findOne({ _id: new ObjectId(id), userId: new ObjectId(userId) });
+      const file = await filesCollection.findOne({
+        _id: new ObjectId(id), userId: new ObjectId(userId),
+      });
 
-      if (!file)
-        return res.status(404).json({ error: 'Not found' });
+      if (!file) return res.status(404).json({ error: 'Not found' });
 
       return res.status(200).json({
         id: file._id,
@@ -121,19 +121,18 @@ class FilesController {
     const page = parseInt(req.query.page, 10) || 0;
     const userId = await redisClient.get(`auth_${token}`);
 
-    if (!userId)
-      return res.status(401).json({ error: 'Unauthorized' });
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
     try {
       const filesCollection = await dbClient.db.collection('files');
       const query = { userId: new ObjectId(userId), parentId };
       const files = await filesCollection
-          .find(query)
-          .skip(page * 20)
-          .limit(20)
-          .toArray();
+        .find(query)
+        .skip(page * 20)
+        .limit(20)
+        .toArray();
 
-      const formattedFiles = files.map(file => ({
+      const formattedFiles = files.map((file) => ({
         id: file._id,
         userId: file.userId,
         name: file.name,
@@ -143,6 +142,78 @@ class FilesController {
       }));
 
       return res.status(200).json(formattedFiles);
+    } catch (error) {
+      console.error(error.message);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
+  static async putPublish(req, res) {
+    const token = req.headers['x-token'];
+    const { id } = req.params;
+    const userId = await redisClient.get(`auth_${token}`);
+
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    try {
+      const filesCollection = await dbClient.db.collection('files');
+      const file = await filesCollection.findOne({
+        _id: new ObjectId(id), userId: new ObjectId(userId),
+      });
+
+      if (!file) return res.status(404).json({ error: 'Not found' });
+
+      await filesCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { isPublic: true } },
+      );
+
+      const updatedFile = await filesCollection.findOne({ _id: new ObjectId(id) });
+
+      return res.status(200).json({
+        id: updatedFile._id,
+        userId: updatedFile.userId,
+        name: updatedFile.name,
+        type: updatedFile.type,
+        isPublic: updatedFile.isPublic,
+        parentId: updatedFile.parentId,
+      });
+    } catch (error) {
+      console.error(error.message);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
+  static async putUnpublish(req, res) {
+    const token = req.headers['x-token'];
+    const { id } = req.params;
+    const userId = await redisClient.get(`auth_${token}`);
+
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    try {
+      const filesCollection = await dbClient.db.collection('files');
+      const file = await filesCollection.findOne({
+        _id: new ObjectId(id), userId: new ObjectId(userId),
+      });
+
+      if (!file) return res.status(404).json({ error: 'Not found' });
+
+      await filesCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { isPublic: false } },
+      );
+
+      const updatedFile = await filesCollection.findOne({ _id: new ObjectId(id) });
+
+      return res.status(200).json({
+        id: updatedFile._id,
+        userId: updatedFile.userId,
+        name: updatedFile.name,
+        type: updatedFile.type,
+        isPublic: updatedFile.isPublic,
+        parentId: updatedFile.parentId,
+      });
     } catch (error) {
       console.error(error.message);
       return res.status(500).json({ error: 'Internal Server Error' });
