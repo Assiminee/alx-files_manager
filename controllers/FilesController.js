@@ -133,11 +133,10 @@ class FilesController {
       const fileContent = fs.createReadStream(filePath);
       fileContent.pipe(res);
     } catch (error) {
-      console.error(`❌ Error retrieving file content: ${error.message}`);
+      console.error(error.message);
       return res.status(500).json({ error: 'Internal Server Error' });
     }
 
-    // 🔥 Ensure consistent return (for ESLint)
     return null;
   }
 
